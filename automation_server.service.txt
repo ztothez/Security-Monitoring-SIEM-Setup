@@ -1,0 +1,17 @@
+[Unit]
+Description=Security Automation Webhook
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/env python3 /home/secadmin/automation_server.py
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="SUDO_ASKPASS=/bin/false"
+WorkingDirectory=/home/secadmin
+StandardOutput=append:/var/log/automation_server.log
+StandardError=append:/var/log/automation_server.log
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

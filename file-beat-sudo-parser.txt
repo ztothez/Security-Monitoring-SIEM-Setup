@@ -1,0 +1,26 @@
+PUT _ingest/pipeline/filebeat-sudo-parser
+{
+  "processors": [
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          ".*sudo:\\s*(?<extracted_user_name>\\S+)\\s.*COMMAND=\\s*(?<command>.+)"
+        ]
+      }
+    },
+    {
+      "set": {
+        "field": "user.name",
+        "value": "{{extracted_user_name}}",
+        "ignore_empty_value": true
+      }
+    },
+    {
+      "remove": {
+        "field": "extracted_user_name",
+        "ignore_missing": true
+      }
+    }
+  ]
+}

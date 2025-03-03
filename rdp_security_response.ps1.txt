@@ -1,0 +1,75 @@
+# PowerShell Script: rdp_security_response.ps1
+# This script responds to RDP brute-force attacks by blocking the attacker's IP, locking the compromised user,
+# forcing a password reset, logging the event, and sending a Slack alert.
+
+# Define variables (Replace with actual Slack webhook URL)
+$SlackWebhookURL = <redacted>
+$IPAddress = $args[0]  # Attacker's IP address (Passed from SIEM alert)
+$Username = $args[1]  # Compromised user account (Passed from SIEM alert)
+
+# Function to send Slack alert
+Function Send-SlackAlert {
+    param([string]$ip, [string]$user)
+
+    $Payload = @{
+        text = "*RDP Security Alert!*`n" +
+               "- Brute-force attack detected via RDP!`n" +
+               "- IP Blocked: `$ip`n" +
+               "- User Locked: `$user`n" +
+               "- Password Reset Enforced`n" +
+               "- Active RDP Sessions Terminated"
+    } | ConvertTo-Json -Depth 3
+
+    Invoke-RestMethod -Uri $SlackWebhookURL -Method Post -Body $Payload -ContentType "application/json"
+}
+
+# Check if IP and Username are provided
+if (-not $IPAddress -or -not $Username) {
+    Write-Host "Error: No IP or Username provided!"
+    exit 1
+}
+
+# Block the Attacker's IP in Windows Firewall for RDP
+Write-Host "Blocking RDP IP: $IPAddress"
+New-NetFirewallRule -DisplayName "Block RDP $IPAddress" -Direction Inbound -Action Block -RemoteAddress $IPAddress -Protocol TCP -LocalPort 3389 -Enabled True
+
+# Disable User Account (Locking the compromised account)
+Write-Host "Disabling User: $Username"
+Disable-LocalUser -Name $Username
+
+# Force Password Reset
+Write-Host "Forcing Password Reset for User: $Username"
+Set-LocalUser -Name $Username -PasswordNeverExpires $false
+net user $Username /logonpasswordchg:yes
+
+# Kill Active RDP Sessions (Logoff User)
+Write-Host "Terminating active RDP sessions for: $Username"
+$querySessions = query session | Select-String $Username
+if ($querySessions) {
+    $sessionId = ($querySessions -split "\s+")[2]
+    logoff $sessionId
+}
+
+# Construct event log message
+$EventMessage = "Security Incident: RDP Brute-Force Detected`n" +
+                "Blocked IP: $IPAddress`n" +
+                "Locked User: $Username`n" +
+                "Password Reset Enforced`n" +
+                "Active RDP Sessions Terminated"
+
+# Write to Windows Event Log
+try {
+    Write-EventLog -LogName $logName -Source $logSource -EntryType Warning -EventId 4625 -Message $EventMessage
+    Write-Host "Event logged successfully in $logName log under source: $logSource"
+} catch {
+    Write-Host "Error: Unable to write to Event Log. Ensure script is running as Administrator."
+}
+
+# Send Slack Alert
+Write-Host "Sending Slack Notification..."
+Send-SlackAlert -ip $IPAddress -user $Username
+
+Write-Host "RDP security response actions completed successfully!"
+
+
+

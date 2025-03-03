@@ -1,0 +1,107 @@
+{
+  "id": "<redacted>",
+  "updated_at": "2025-03-03T00:08:07.776Z",
+  "updated_by": "<redacted>",
+  "created_at": "2025-03-02T23:14:51.404Z",
+  "created_by": "<redacted>",
+  "name": "RDP brute-force detection",
+  "tags": [],
+  "interval": "5m",
+  "enabled": true,
+  "revision": 2,
+  "description": "Detects RDP",
+  "risk_score": 73,
+  "severity": "high",
+  "license": "",
+  "output_index": "",
+  "meta": {
+    "from": "1m",
+    "kibana_siem_app_url": "<redacted>"
+  },
+  "author": [],
+  "false_positives": [],
+  "from": "now-360s",
+  "rule_id": "<redacted>",
+  "max_signals": 100,
+  "risk_score_mapping": [],
+  "severity_mapping": [],
+  "threat": [],
+  "to": "now",
+  "references": [],
+  "version": 1,
+  "exceptions_list": [],
+  "immutable": false,
+  "rule_source": {
+    "type": "internal"
+  },
+  "related_integrations": [],
+  "required_fields": [],
+  "setup": "",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "logs-*",
+    "logs-windows.security-*"
+  ],
+  "query": "sequence by host.id, source.ip, user.name with maxspan=10m\n  [authentication where host.os.type == \"windows\" \n    and event.action == \"logon_attempt\"\n    and event.outcome == \"failure\"\n    and source.ip != null \n    and source.ip != \"0.0.0.0\" \n    and source.ip != \"::\"\n    and event.code == \"4625\"\n    and winlog.event_data.LogonType == \"10\"] with runs=10\n\n  [authentication where host.os.type == \"windows\" \n    and event.action == \"logon_attempt\"\n    and event.outcome == \"success\"\n    and source.ip != null \n    and source.ip != \"0.0.0.0\" \n    and source.ip != \"::\"\n    and event.code == \"4624\"\n    and winlog.event_data.LogonType == \"10\"]",
+  "filters": [],
+  "actions": [
+    {
+      "id": "<redacted>",
+      "params": {
+        "body": "{\r\n  \"ip\": \"{{event.source.ip}}\",\r\n  \"user\": \"{{event.user.name}}\"\r\n}\r\n"
+      },
+      "action_type_id": ".webhook",
+      "uuid": "<redacted>",
+      "frequency": {
+        "summary": true,
+        "notifyWhen": "onActiveAlert",
+        "throttle": null
+      },
+      "group": "default"
+    }
+  ]
+}
+{
+  "id": "<redacted>",
+  "type": "action",
+  "updated_at": "2025-03-02T23:53:46.638Z",
+  "created_at": "2025-03-02T23:53:46.638Z",
+  "version": "<redacted>",
+  "attributes": {
+    "actionTypeId": ".webhook",
+    "name": "Windows Block",
+    "isMissingSecrets": false,
+    "config": {
+      "method": "post",
+      "url": "<redacted>",
+      "hasAuth": false,
+      "authType": null,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    "secrets": {}
+  },
+  "references": [],
+  "managed": false,
+  "coreMigrationVersion": "8.8.0",
+  "typeMigrationVersion": "10.1.0"
+}
+{
+  "exported_count": 2,
+  "exported_rules_count": 1,
+  "missing_rules": [],
+  "missing_rules_count": 0,
+  "exported_exception_list_count": 0,
+  "exported_exception_list_item_count": 0,
+  "missing_exception_list_item_count": 0,
+  "missing_exception_list_items": [],
+  "missing_exception_lists": [],
+  "missing_exception_lists_count": 0,
+  "exported_action_connector_count": 1,
+  "missing_action_connection_count": 0,
+  "missing_action_connections": [],
+  "excluded_action_connection_count": 0,
+  "excluded_action_connections": []
+}

@@ -1,0 +1,11 @@
+version: "3"
+
+agent:
+  authtoken: <redacted>  # Your actual Ngrok authtoken
+
+endpoints:
+  - name: secure-endpoint
+    url: <redacted>  # Your Ngrok public domain
+    upstream:
+      url: http://localhost:5000  # Local service that receives the traffic
+    traffic_policy_file: /home/secadmin/ngrok/traffic-policy.yml  # Reference to the policy file
